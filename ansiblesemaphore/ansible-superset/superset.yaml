@@ -1,0 +1,142 @@
+---
+- name: Deploy Superset
+  hosts: localhost
+  become: yes
+  vars:
+    superset_version: "2.1.0"
+    superset_home: "/opt/superset"
+    superset_venv: "/opt/superset/venv"
+    superset_config: "/opt/superset/superset_config.py"
+    superset_db: "postgresql://superset:superset@localhost:5432/superset"
+    superset_admin_username: "admin"
+    superset_admin_password: "admin"
+    superset_admin_firstname: "Superset"
+    superset_admin_lastname: "Admin"
+    superset_admin_email: "admin@superset.com"
+
+  tasks:
+    - name: Install system dependencies
+      apt:
+        name:
+          - build-essential
+          - libssl-dev
+          - libffi-dev
+          - python3-dev
+          - python3-pip
+          - python3-venv
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+        state: present
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Create Superset directory
+      file:
+        path: "{{ superset_home }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create virtual environment
+      command:
+        cmd: "python3 -m venv {{ superset_venv }}"
+        creates: "{{ superset_venv }}"
+
+    - name: Install Superset
+      pip:
+        name: "apache-superset=={{ superset_version }}"
+        virtualenv: "{{ superset_venv }}"
+
+    - name: Create Superset config file
+      copy:
+        dest: "{{ superset_config }}"
+        content: |
+          SQLALCHEMY_DATABASE_URI = '{{ superset_db }}'
+          SECRET_KEY = 'your_secret_key_here'
+
+    - name: Initialize Superset database
+      command:
+        cmd: "{{ superset_venv }}/bin/superset db upgrade"
+      environment:
+        PYTHONPATH: "{{ superset_home }}"
+        SUPERSET_CONFIG_PATH: "{{ superset_config }}"
+
+    - name: Create Superset admin user
+      command:
+        cmd: >
+          {{ superset_venv }}/bin/superset fab create-admin
+          --username {{ superset_admin_username }}
+          --password {{ superset_admin_password }}
+          --firstname {{ superset_admin_firstname }}
+          --lastname {{ superset_admin_lastname }}
+          --email {{ superset_admin_email }}
+      environment:
+        PYTHONPATH: "{{ superset_home }}"
+        SUPERSET_CONFIG_PATH: "{{ superset_config }}"
+
+    - name: Initialize Superset
+      command:
+        cmd: "{{ superset_venv }}/bin/superset init"
+      environment:
+        PYTHONPATH: "{{ superset_home }}"
+        SUPERSET_CONFIG_PATH: "{{ superset_config }}"
+
+    - name: Create Docker Compose file for supporting services
+      copy:
+        dest: "{{ superset_home }}/docker-compose.yml"
+        content: |
+          version: '3'
+          services:
+            redis:
+              image: redis:6.0
+              ports:
+                - "6379:6379"
+            postgres:
+              image: postgres:13
+              environment:
+                POSTGRES_DB: superset
+                POSTGRES_USER: superset
+                POSTGRES_PASSWORD: superset
+              ports:
+                - "5432:5432"
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+          
+          volumes:
+            postgres_data:
+
+    - name: Start supporting services
+      command:
+        cmd: docker-compose up -d
+        chdir: "{{ superset_home }}"
+
+    - name: Create Superset service file
+      copy:
+        dest: /etc/systemd/system/superset.service
+        content: |
+          [Unit]
+          Description=Superset
+          After=network.target
+
+          [Service]
+          User=root
+          Environment=PYTHONPATH={{ superset_home }}
+          Environment=SUPERSET_CONFIG_PATH={{ superset_config }}
+          ExecStart={{ superset_venv }}/bin/gunicorn --workers 4 --bind 0.0.0.0:8088 "superset.app:create_app()"
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Start Superset service
+      systemd:
+        name: superset
+        state: started
+        enabled: yes
+        daemon_reload: yes
