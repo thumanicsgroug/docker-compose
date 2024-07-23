@@ -90,7 +90,7 @@
 
     - name: Start PostgreSQL using Docker Compose
       command:
-        cmd: docker-compose up -d
+        cmd: docker compose up -d
         chdir: "{{ superset_home }}"
 
     - name: Wait for PostgreSQL to be ready
