@@ -42,19 +42,26 @@
         creates: "{{ superset_venv }}"
 
     - name: Upgrade pip
-      pip:
-        name: pip
-        state: latest
-        virtualenv: "{{ superset_venv }}"
+          pip:
+            name: pip
+            state: latest
+            virtualenv: "{{ superset_venv }}"
 
     - name: Install Superset and dependencies
       pip:
         name: 
           - "apache-superset=={{ superset_version }}"
-          - "Flask==2.2.5"
-          - "Werkzeug==2.2.3"
         virtualenv: "{{ superset_venv }}"
+        state: present
 
+    - name: Ensure correct Flask and Werkzeug versions
+      pip:
+        name:
+          - "Flask<2.2,>=2.1.3"
+          - "Werkzeug<2.2.0"
+        virtualenv: "{{ superset_venv }}"
+        state: present
+        
     - name: Create Superset config file
       copy:
         dest: "{{ superset_config }}"
