@@ -1,6 +1,6 @@
 ---
 - name: Deploy Superset
-  hosts: localhost
+  hosts: all
   become: yes
   vars:
     superset_version: "2.1.0"
