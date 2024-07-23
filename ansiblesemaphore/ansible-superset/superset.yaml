@@ -42,10 +42,10 @@
         creates: "{{ superset_venv }}"
 
     - name: Upgrade pip
-          pip:
-            name: pip
-            state: latest
-            virtualenv: "{{ superset_venv }}"
+      pip:
+        name: pip
+        state: latest
+        virtualenv: "{{ superset_venv }}"
 
     - name: Install Superset and dependencies
       pip:
