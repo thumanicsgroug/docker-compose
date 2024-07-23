@@ -24,9 +24,8 @@
           - python3-dev
           - python3-pip
           - python3-venv
-          - postgresql
-          - postgresql-contrib
-          - libpq-dev
+          - docker.io
+          - docker-compose
         state: present
         update_cache: yes
 
@@ -71,15 +70,44 @@
           WEBSERVER_THREADS = 8
           SUPERSET_WEBSERVER_TIMEOUT = 300
 
+    - name: Create Docker Compose file for PostgreSQL
+      copy:
+        dest: "{{ superset_home }}/docker-compose.yml"
+        content: |
+          version: '3'
+          services:
+            postgres:
+              image: postgres:13
+              environment:
+                POSTGRES_DB: superset
+                POSTGRES_USER: superset
+                POSTGRES_PASSWORD: superset
+              ports:
+                - "5432:5432"
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+          
+          volumes:
+            postgres_data:
+
+    - name: Start PostgreSQL using Docker Compose
+      command:
+        cmd: docker-compose up -d
+        chdir: "{{ superset_home }}"
+
+    - name: Wait for PostgreSQL to be ready
+      wait_for:
+        host: localhost
+        port: 5432
+        delay: 10
+        timeout: 60
+
     - name: Initialize Superset database
       command:
         cmd: "{{ superset_venv }}/bin/superset db upgrade"
       environment:
         PYTHONPATH: "{{ superset_home }}"
         SUPERSET_CONFIG_PATH: "{{ superset_config }}"
-      register: db_init_result
-      ignore_errors: yes
-
 
     - name: Create Superset admin user
       command:
