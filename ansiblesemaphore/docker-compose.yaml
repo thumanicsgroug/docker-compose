@@ -16,28 +16,26 @@ services:
     restart: unless-stopped
   semaphore:
     container_name: ansiblesemaphore
-    image: docker.io/semaphoreui/semaphore:v2.10.22
-    user: "${UID}:${GID}"
+    image: docker.io/semaphoreui/semaphore:latest
     ports:
       - 3000:3000
     environment:
+      - SEMAPHORE_DB_PASS=${SEMAPHORE_DB_PASS: ?error}
+      - SEMAPHORE_DB_HOST=${SEMAPHORE_DB_HOST: ?error}
+      - SEMAPHORE_DB=${SEMAPHORE_DB:?error}
+      - SEMAPHORE_ADMIN_PASSWORD=${SEMAPHORE_ADMIN_PASSWORD: ?error}
+      - SEMAPHORE_ADMIN_NAME=${SEMAPHORE_ADMIN_NAME:-admin}
+      - SEMAPHORE_ADMIN_EMAIL=${SEMAPHORE_ADMIN_EMAIL:-admin@localhost}
+      - SEMAPHORE ADMIN=${SEMAPHORE ADMIN: -admin}
+      - SEMAPHORE_ACCESS_KEY_ENCRYPTION=${SEMAPHORE_ACCESS_KEY_ENCRYPTION}
       - SEMAPHORE_DB_USER=semaphore
-      - SEMAPHORE_DB_PASS=secret-password  # change!
-      - SEMAPHORE_DB_HOST=mysql
       - SEMAPHORE_DB_PORT=3306
       - SEMAPHORE_DB_DIALECT=mysql
-      - SEMAPHORE_DB=semaphore
       - SEMAPHORE_PLAYBOOK_PATH=/tmp/semaphore/
-      - SEMAPHORE_ADMIN_PASSWORD=Mr2ZDkpacy5WHpcK33tWWY9vA7sT+DUByun8MAo+gMU=
-      - SEMAPHORE_ADMIN_NAME=admin
-      - SEMAPHORE_ADMIN_EMAIL=admin@admin.com
-      - SEMAPHORE_ADMIN=admin
-      - SEMAPHORE_ACCESS_KEY_ENCRYPTION= Mr2ZDkpacy5WHpcK33tWWY9vA7sT+DUByun8MAo+gMU=
       - ANSIBLE_HOST_KEY_CHECKING=false  # (optional) change to true if you want to enable host key checking
     volumes:
-      - ./inventory/:/inventory:ro
-      - ./authorized-keys/:/authorized-keys:ro
-      - ./config/:/etc/semaphore:rw
+      - semaphore_config:/etc/semaphore:rw
+      - ./data/:/data:ro
     restart: unless-stopped
     depends_on:
       - mysql
