@@ -24,8 +24,6 @@
           - python3-dev
           - python3-pip
           - python3-venv
-          - docker.io
-          - docker-compose
         state: present
         update_cache: yes
 
