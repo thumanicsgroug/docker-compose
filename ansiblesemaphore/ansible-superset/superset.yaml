@@ -77,6 +77,9 @@
       environment:
         PYTHONPATH: "{{ superset_home }}"
         SUPERSET_CONFIG_PATH: "{{ superset_config }}"
+      register: db_init_result
+      ignore_errors: yes
+
 
     - name: Create Superset admin user
       command:
