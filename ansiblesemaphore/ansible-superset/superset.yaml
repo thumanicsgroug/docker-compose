@@ -48,9 +48,23 @@
         cmd: "python3 -m venv {{ superset_venv }}"
         creates: "{{ superset_venv }}"
 
-    - name: Install Superset
+- name: Create virtual environment
+      command:
+        cmd: "python3 -m venv {{ superset_venv }}"
+        creates: "{{ superset_venv }}"
+
+    - name: Upgrade pip
       pip:
-        name: "apache-superset=={{ superset_version }}"
+        name: pip
+        state: latest
+        virtualenv: "{{ superset_venv }}"
+
+    - name: Install Superset and dependencies
+      pip:
+        name: 
+          - "apache-superset=={{ superset_version }}"
+          - "Flask==2.2.5"
+          - "Werkzeug==2.2.3"
         virtualenv: "{{ superset_venv }}"
 
     - name: Create Superset config file
@@ -59,6 +73,8 @@
         content: |
           SQLALCHEMY_DATABASE_URI = '{{ superset_db }}'
           SECRET_KEY = 'your_secret_key_here'
+          WEBSERVER_THREADS = 8
+          SUPERSET_WEBSERVER_TIMEOUT = 300
 
     - name: Initialize Superset database
       command:
