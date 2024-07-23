@@ -30,13 +30,6 @@
         state: present
         update_cache: yes
 
-    # - name: Install Docker
-    #   apt:
-    #     name:
-    #       - docker.io
-    #       - docker-compose
-    #     state: present
-
     - name: Create Superset directory
       file:
         path: "{{ superset_home }}"
@@ -44,11 +37,6 @@
         mode: '0755'
 
     - name: Create virtual environment
-      command:
-        cmd: "python3 -m venv {{ superset_venv }}"
-        creates: "{{ superset_venv }}"
-
-- name: Create virtual environment
       command:
         cmd: "python3 -m venv {{ superset_venv }}"
         creates: "{{ superset_venv }}"
@@ -72,7 +60,7 @@
         dest: "{{ superset_config }}"
         content: |
           SQLALCHEMY_DATABASE_URI = '{{ superset_db }}'
-          SECRET_KEY = 'your_secret_key_here'
+          SECRET_KEY = 'Mr2ZDkpacy5WHpcK33tWWY9vA7sT+DUByun8MAo+gMU='
           WEBSERVER_THREADS = 8
           SUPERSET_WEBSERVER_TIMEOUT = 300
 
@@ -102,35 +90,6 @@
       environment:
         PYTHONPATH: "{{ superset_home }}"
         SUPERSET_CONFIG_PATH: "{{ superset_config }}"
-
-    - name: Create Docker Compose file for supporting services
-      copy:
-        dest: "{{ superset_home }}/docker-compose.yml"
-        content: |
-          version: '3'
-          services:
-            redis:
-              image: redis:6.0
-              ports:
-                - "6379:6379"
-            postgres:
-              image: postgres:13
-              environment:
-                POSTGRES_DB: superset
-                POSTGRES_USER: superset
-                POSTGRES_PASSWORD: superset
-              ports:
-                - "5432:5432"
-              volumes:
-                - postgres_data:/var/lib/postgresql/data
-          
-          volumes:
-            postgres_data:
-
-    - name: Start supporting services
-      command:
-        cmd: docker-compose up -d
-        chdir: "{{ superset_home }}"
 
     - name: Create Superset service file
       copy:
